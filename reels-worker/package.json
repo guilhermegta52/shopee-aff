@@ -1,0 +1,9 @@
+{
+  "name": "promo-radar-reels-worker",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "dependencies": {
+    "@vercel/blob": "^2.6.1"
+  }
+}
