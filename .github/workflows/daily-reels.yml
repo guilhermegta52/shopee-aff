@@ -1,0 +1,94 @@
+name: Promo Radar — Reels diários
+
+on:
+  pull_request:
+    paths:
+      - 'reels-worker/**'
+      - '.github/workflows/daily-reels.yml'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Dry run only (no Instagram post)'
+        required: true
+        default: dry-run
+        type: choice
+        options:
+          - dry-run
+          - live-catalog-dry-run
+  schedule:
+    - cron: '0 12 * * *'
+
+concurrency:
+  group: promo-radar-reels-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  render:
+    if: github.event_name != 'schedule' || vars.ENABLE_DAILY_REELS == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    env:
+      SHOPEE_APP_ID: ${{ secrets.SHOPEE_APP_ID }}
+      SHOPEE_APP_SECRET: ${{ secrets.SHOPEE_APP_SECRET }}
+      INSTAGRAM_TOKEN: ${{ secrets.INSTAGRAM_TOKEN }}
+      INSTAGRAM_ACCOUNT_ID: ${{ secrets.INSTAGRAM_ACCOUNT_ID }}
+      BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+      PROMO_RADAR_API: ${{ vars.PROMO_RADAR_API }}
+      PIPER_VOICE: pt_BR-faber-medium
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install FFmpeg, Piper, fonts and renderer
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
+          python -m pip install --quiet pillow piper-tts
+          python -m piper.download_voices pt_BR-faber-medium
+          npm install --prefix reels-worker --omit=dev --no-audit --no-fund
+      - name: Render and validate, without publishing
+        if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'dry-run')
+        run: |
+          python reels-worker/smoke_fixture.py
+          TEST_PRODUCT=reels-worker/out/smoke-product.json TEST_IMAGE=reels-worker/out/smoke-image.jpg python reels-worker/daily.py
+      - name: Test full pipeline against real Shopee offers, without publishing
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'live-catalog-dry-run'
+        run: python reels-worker/daily.py
+      - name: Daily scheduled publishing (explicitly disabled until configured)
+        if: github.event_name == 'schedule' && vars.ENABLE_DAILY_REELS == 'true'
+        env:
+          ENABLE_REAL_POSTING: 'true'
+        run: |
+          test -n "$SHOPEE_APP_ID" && test -n "$SHOPEE_APP_SECRET"
+          test -n "$INSTAGRAM_TOKEN" && test -n "$INSTAGRAM_ACCOUNT_ID"
+          test -n "$BLOB_READ_WRITE_TOKEN"
+          python reels-worker/daily.py --publish
+      - name: Save render for independent review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: promo-radar-reel-${{ github.run_number }}
+          path: |
+            reels-worker/out/promo-reel.mp4
+            reels-worker/out/result.json
+            reels-worker/out/publish.json
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Record item ID only after verified Instagram publication
+        if: success() && github.event_name == 'schedule' && vars.ENABLE_DAILY_REELS == 'true'
+        run: |
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add reels-worker/history.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: save published Promo Radar Reel"
+            git push
+          fi
