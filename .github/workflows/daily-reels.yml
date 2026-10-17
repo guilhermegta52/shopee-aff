@@ -31,7 +31,6 @@ jobs:
     permissions:
       contents: write
     env:
-      HF_KEY: ${{ secrets.HF_KEY }}
       SHOPEE_APP_ID: ${{ secrets.SHOPEE_APP_ID }}
       SHOPEE_APP_SECRET: ${{ secrets.SHOPEE_APP_SECRET }}
       INSTAGRAM_TOKEN: ${{ secrets.INSTAGRAM_TOKEN }}
@@ -58,6 +57,8 @@ jobs:
           npm install --prefix reels-worker --omit=dev --no-audit --no-fund
       - name: Check AI API credentials (no spending, no publishing)
         if: github.event_name == 'workflow_dispatch' && inputs.mode == 'ai-credentials-check'
+        env:
+          HF_KEY: ${{ secrets.HF_KEY }}
         run: |
           python - <<'PY'
           import os, sys
