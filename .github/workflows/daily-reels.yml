@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'Dry run only (no Instagram post)'
+        description: 'Manual validation mode (no Instagram post)'
         required: true
         default: dry-run
         type: choice
@@ -16,6 +16,12 @@ on:
           - dry-run
           - live-catalog-dry-run
           - ai-credentials-check
+          - ai-presenter-preview
+      approve_paid_ai:
+        description: 'Approve ONE paid Kling 3.0 Standard generation: 5 seconds, sound off'
+        type: boolean
+        required: true
+        default: false
   schedule:
     - cron: '0 12 * * *'
 
@@ -79,6 +85,16 @@ jobs:
       - name: Test full pipeline against real Shopee offers, without publishing
         if: github.event_name == 'workflow_dispatch' && inputs.mode == 'live-catalog-dry-run'
         run: python reels-worker/daily.py
+      - name: Generate one AI presenter preview without publishing
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'ai-presenter-preview'
+        env:
+          HF_KEY: ${{ secrets.HF_KEY }}
+          PRESENTER_MODE: ai
+          ENABLE_PAID_AI_GENERATION: ${{ inputs.approve_paid_ai && 'true' || 'false' }}
+        run: |
+          test "$ENABLE_PAID_AI_GENERATION" = "true" || { echo "Paid AI approval is required"; exit 1; }
+          test -n "$HF_KEY" || { echo "HF_KEY is missing"; exit 1; }
+          python reels-worker/daily.py
       - name: Daily scheduled publishing (explicitly disabled until configured)
         if: github.event_name == 'schedule' && vars.ENABLE_DAILY_REELS == 'true'
         env:
@@ -94,6 +110,8 @@ jobs:
         with:
           name: promo-radar-reel-${{ github.run_number }}
           path: |
+            reels-worker/out/presenter.mp4
+            reels-worker/out/presenter-request.json
             reels-worker/out/promo-reel.mp4
             reels-worker/out/result.json
             reels-worker/out/publish.json

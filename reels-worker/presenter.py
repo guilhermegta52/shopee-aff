@@ -39,8 +39,8 @@ def generate(prod, dest):
         raise RuntimeError("Real Shopee HTTPS product image required as AI presenter reference")
     title = str(prod.get("title", ""))[:140]
     prompt = (
-        "Vertical professional UGC product advertisement in a realistic clean Brazilian workshop. "
-        "An adult human presenter naturally holds and presents the EXACT tool shown in the reference photograph "
+        "Vertical professional UGC product advertisement in a realistic clean Brazilian studio. "
+        "An adult human presenter naturally holds and presents the EXACT product shown in the reference photograph "
         "to camera, gentle hand and head movement, studio lighting, waist-up composition. "
         "Maintain true proportions, shape and branding of the pictured product. "
         "Do not invent components, functions, certifications or performance claims. "
@@ -53,10 +53,17 @@ def generate(prod, dest):
     rid = data.get("request_id")
     if not rid:
         raise RuntimeError("AI provider did not return request_id: " + str(data.get("status", "unknown")))
+    record = {"request_id": str(rid), "model": MODEL, "duration": 5,
+              "sound": "off", "status": str(data.get("status", "submitted"))}
+    record_path = pathlib.Path(dest).with_name("presenter-request.json")
+    record_path.write_text(json.dumps(record, indent=2), encoding="utf-8")
+    print("AI_REQUEST_ACCEPTED", rid, flush=True)
     deadline = time.monotonic() + 480
     while time.monotonic() < deadline:
         reply = _request("/requests/" + urllib.parse.quote(str(rid), safe="") + "/status", key)
         status = str(reply.get("status", "")).lower()
+        record["status"] = status
+        record_path.write_text(json.dumps(record, indent=2), encoding="utf-8")
         if status == "completed":
             video = reply.get("video") or (reply.get("result") or {}).get("video")
             link = video.get("url") if isinstance(video, dict) else video
