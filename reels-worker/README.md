@@ -36,3 +36,12 @@ Horário agendado: 12:00 UTC / 09:00 America/Sao_Paulo (sem horário de verão, 
 - Credenciais Vercel/Instagram pré-existentes **não são copiadas automaticamente** ao GitHub.
 - Custos e cotas do GitHub Actions, Vercel Blob, Instagram e hospedagem dependem do plano e uso.
 - O repositório GitHub ainda precisa estar conectado ao código deste projeto para a agenda rodar.
+## Modelo Apresentador Pro (experimental, DESATIVADO)
+
+Novo módulo `presenter.py`. Com autorização explícita, envia a **foto verdadeira do produto** a um serviço externo de geração de vídeo por IA, solicitando uma pessoa adulta mostrando a ferramenta em oficina. Substitui a primeira cena estática por aproximadamente 4–5 segundos desse vídeo, conserva a narração local, o preço e as cenas seguintes. IA pode deformar mãos/ferramentas, inventar partes do produto e descumprir a referência: **a revisão humana do vídeo final é indispensável**.
+
+**Por padrão não chama nenhum serviço pago.** O teste atual (e o GitHub Actions existente) continuam usando somente o modelo anterior. Para ativar numa execução controlada, é preciso `PRESENTER_MODE=ai`, `ENABLE_PAID_AI_GENERATION=true` e a credencial `HF_KEY` do [Higgsfield API](https://open.higgsfield.ai/api-keys) em variáveis secretas. Isso gera **cobrança de créditos por tentativa**, inclusive quando a saída não é adequada. Não configure essas variáveis nem use `--publish` sem orçamento e revisão prévios.
+
+Foi preparado para `kling-video/v3.0/std/image-to-video`, 5 segundos, `sound=off`. Endpoint, custos, payload e resposta podem mudar; confirme a API/custos do provedor antes do primeiro uso. O limite de espera é 8 minutos e há bloqueio contra tentativa de geração sem aprovação. Quando a geração começar e ocorrer timeout, confira o painel do provedor antes de tentar novamente para não duplicar cobranças.
+
+**Teste local sem gastos**: deixe `PRESENTER_MODE` desativado e execute o dry-run habitual. O PR deste módulo deve ser revisado e mesclado antes de uso; o GitHub workflow não habilita nem cobra o serviço de IA.
