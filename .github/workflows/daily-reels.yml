@@ -77,6 +77,8 @@ jobs:
               sys.exit(1)
           print('HF_KEY_FORMAT_OK — segredo encontrado e formato validado, SEM chamada à API, SEM cobrança, SEM publicação')
           PY
+      - name: Verify daily budget and duplicate-attempt protection
+        run: python -m unittest discover -s reels-worker -p 'test_daily_guard.py'
       - name: Render and validate, without publishing
         if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'dry-run')
         run: |
@@ -95,14 +97,19 @@ jobs:
           test "$ENABLE_PAID_AI_GENERATION" = "true" || { echo "Paid AI approval is required"; exit 1; }
           test -n "$HF_KEY" || { echo "HF_KEY is missing"; exit 1; }
           python reels-worker/daily.py
-      - name: Daily scheduled publishing (explicitly disabled until configured)
+      - name: Daily AI generation and Instagram publication
         if: github.event_name == 'schedule' && vars.ENABLE_DAILY_REELS == 'true'
         env:
           ENABLE_REAL_POSTING: 'true'
+          HF_KEY: ${{ secrets.HF_KEY }}
+          PRESENTER_MODE: ai
+          ENABLE_PAID_AI_GENERATION: 'true'
         run: |
           test -n "$SHOPEE_APP_ID" && test -n "$SHOPEE_APP_SECRET"
           test -n "$INSTAGRAM_TOKEN" && test -n "$INSTAGRAM_ACCOUNT_ID"
           test -n "$BLOB_READ_WRITE_TOKEN"
+          test -n "$HF_KEY"
+          python reels-worker/daily_guard.py
           python reels-worker/daily.py --publish
       - name: Save render for independent review
         if: always()
@@ -110,6 +117,7 @@ jobs:
         with:
           name: promo-radar-reel-${{ github.run_number }}
           path: |
+            reels-worker/ai-daily-ledger.json
             reels-worker/out/presenter.mp4
             reels-worker/out/presenter-request.json
             reels-worker/out/promo-reel.mp4
