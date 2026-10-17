@@ -122,7 +122,7 @@ def synth_script(p):
  return ('Olha essa oferta da Shopee! '+str(p['title'])[:85]+
          '. O preço informado é '+amount+
          '. Confira fotos, detalhes e disponibilidade no link da legenda antes de comprar.')
-def render(prod,ffmpeg,image,wav,dest):
+def render(prod,ffmpeg,image,wav,dest,presenter_clip=None):
  slides=[]
  for i in range(4):
   path=WORK/f'cena-{i+1}.jpg';overlay(prod,image,i,path);slides.append(path)
@@ -139,7 +139,13 @@ def render(prod,ffmpeg,image,wav,dest):
   vf=("scale=1130:2010:force_original_aspect_ratio=increase,"
       "crop=1080:1920:x='(in_w-1080)/2+14*sin(n/18)':y='(in_h-1920)/2+16*cos(n/23)',"
       f"fade=t=in:st=0:d=0.35,fade=t=out:st={segment-.4}:d=0.4,setsar=1,format=yuv420p")
-  run([ffmpeg,'-y','-loop','1','-framerate','30','-i',s,'-t',str(segment),'-vf',vf,'-an','-r','30','-c:v','libx264','-preset','veryfast','-crf','21','-pix_fmt','yuv420p',path],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+  if i==0 and presenter_clip:
+   ai_vf=("scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,"
+          f"fade=t=in:st=0:d=0.35,fade=t=out:st={segment-.4}:d=0.4,setsar=1,format=yuv420p")
+   run([ffmpeg,'-y','-stream_loop','-1','-i',presenter_clip,'-t',str(segment),'-vf',ai_vf,
+        '-an','-r','30','-c:v','libx264','-preset','veryfast','-crf','21','-pix_fmt','yuv420p',path],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+  else:
+   run([ffmpeg,'-y','-loop','1','-framerate','30','-i',s,'-t',str(segment),'-vf',vf,'-an','-r','30','-c:v','libx264','-preset','veryfast','-crf','21','-pix_fmt','yuv420p',path],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
   clips.append(path)
  concat=WORK/'concat.txt';concat.write_text(''.join("file '"+p.resolve().as_posix()+"'\n" for p in clips),encoding='utf8')
  run([ffmpeg,'-y','-f','concat','-safe','0','-i',concat,'-i',wav,'-map','0:v','-map','1:a',
@@ -157,7 +163,11 @@ def main():
   ffmpeg=imageio_ffmpeg.get_ffmpeg_exe()
  p=product();require(p.get('title') and float(p.get('price') or 0)>0,'Produto inválido')
  image=download_photo(p);wav=WORK/'narracao.wav';voice(synth_script(p),wav)
- dest=WORK/'promo-reel.mp4';render(p,ffmpeg,image,wav,dest)
+ presenter_clip=None
+ if os.getenv('PRESENTER_MODE')=='ai':
+  from presenter import generate
+  presenter_clip=generate(p,WORK/'presenter.mp4')
+ dest=WORK/'promo-reel.mp4';render(p,ffmpeg,image,wav,dest,presenter_clip)
  metadata={'itemId':str(p['itemId']),'title':p['title'],'affiliateLink':p.get('affiliateLink'),'price':p['price'],
            'video':str(dest),'date':datetime.datetime.now(datetime.timezone.utc).isoformat(),'publish':args.publish}
  (WORK/'result.json').write_text(json.dumps(metadata,ensure_ascii=False,indent=2),encoding='utf8')

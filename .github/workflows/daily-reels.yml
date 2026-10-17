@@ -8,13 +8,20 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'Dry run only (no Instagram post)'
+        description: 'Manual validation mode (no Instagram post)'
         required: true
         default: dry-run
         type: choice
         options:
           - dry-run
           - live-catalog-dry-run
+          - ai-credentials-check
+          - ai-presenter-preview
+      approve_paid_ai:
+        description: 'Approve ONE paid Kling 3.0 Standard generation: 5 seconds, sound off'
+        type: boolean
+        required: true
+        default: false
   schedule:
     - cron: '0 12 * * *'
 
@@ -54,6 +61,24 @@ jobs:
           python -m pip install --quiet pillow piper-tts
           python -m piper.download_voices pt_BR-faber-medium
           npm install --prefix reels-worker --omit=dev --no-audit --no-fund
+      - name: Check AI API credentials (no spending, no publishing)
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'ai-credentials-check'
+        env:
+          HF_KEY: ${{ secrets.HF_KEY }}
+        run: |
+          python - <<'PY'
+          import os, sys
+          secret=os.environ.get('HF_KEY','').strip()
+          if not secret:
+              print('CONFIG_ERROR: HF_KEY secret is missing from repository Actions')
+              sys.exit(1)
+          if ':' not in secret or len(secret.split(':',1)[0])<3 or len(secret.split(':',1)[1])<8:
+              print('CONFIG_ERROR: HF_KEY must use KEY_ID:KEY_SECRET syntax (see provider API instructions)')
+              sys.exit(1)
+          print('HF_KEY_FORMAT_OK — segredo encontrado e formato validado, SEM chamada à API, SEM cobrança, SEM publicação')
+          PY
+      - name: Verify daily budget and duplicate-attempt protection
+        run: python -m unittest discover -s reels-worker -p 'test_daily_guard.py'
       - name: Render and validate, without publishing
         if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'dry-run')
         run: |
@@ -62,14 +87,29 @@ jobs:
       - name: Test full pipeline against real Shopee offers, without publishing
         if: github.event_name == 'workflow_dispatch' && inputs.mode == 'live-catalog-dry-run'
         run: python reels-worker/daily.py
-      - name: Daily scheduled publishing (explicitly disabled until configured)
+      - name: Generate one AI presenter preview without publishing
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'ai-presenter-preview'
+        env:
+          HF_KEY: ${{ secrets.HF_KEY }}
+          PRESENTER_MODE: ai
+          ENABLE_PAID_AI_GENERATION: ${{ inputs.approve_paid_ai && 'true' || 'false' }}
+        run: |
+          test "$ENABLE_PAID_AI_GENERATION" = "true" || { echo "Paid AI approval is required"; exit 1; }
+          test -n "$HF_KEY" || { echo "HF_KEY is missing"; exit 1; }
+          python reels-worker/daily.py
+      - name: Daily AI generation and Instagram publication
         if: github.event_name == 'schedule' && vars.ENABLE_DAILY_REELS == 'true'
         env:
           ENABLE_REAL_POSTING: 'true'
+          HF_KEY: ${{ secrets.HF_KEY }}
+          PRESENTER_MODE: ai
+          ENABLE_PAID_AI_GENERATION: 'true'
         run: |
           test -n "$SHOPEE_APP_ID" && test -n "$SHOPEE_APP_SECRET"
           test -n "$INSTAGRAM_TOKEN" && test -n "$INSTAGRAM_ACCOUNT_ID"
           test -n "$BLOB_READ_WRITE_TOKEN"
+          test -n "$HF_KEY"
+          python reels-worker/daily_guard.py
           python reels-worker/daily.py --publish
       - name: Save render for independent review
         if: always()
@@ -77,6 +117,9 @@ jobs:
         with:
           name: promo-radar-reel-${{ github.run_number }}
           path: |
+            reels-worker/ai-daily-ledger.json
+            reels-worker/out/presenter.mp4
+            reels-worker/out/presenter-request.json
             reels-worker/out/promo-reel.mp4
             reels-worker/out/result.json
             reels-worker/out/publish.json
