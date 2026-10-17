@@ -15,6 +15,7 @@ on:
         options:
           - dry-run
           - live-catalog-dry-run
+          - ai-credentials-check
   schedule:
     - cron: '0 12 * * *'
 
@@ -30,6 +31,7 @@ jobs:
     permissions:
       contents: write
     env:
+      HF_KEY: ${{ secrets.HF_KEY }}
       SHOPEE_APP_ID: ${{ secrets.SHOPEE_APP_ID }}
       SHOPEE_APP_SECRET: ${{ secrets.SHOPEE_APP_SECRET }}
       INSTAGRAM_TOKEN: ${{ secrets.INSTAGRAM_TOKEN }}
@@ -54,6 +56,20 @@ jobs:
           python -m pip install --quiet pillow piper-tts
           python -m piper.download_voices pt_BR-faber-medium
           npm install --prefix reels-worker --omit=dev --no-audit --no-fund
+      - name: Check AI API credentials (no spending, no publishing)
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'ai-credentials-check'
+        run: |
+          python - <<'PY'
+          import os, sys
+          secret=os.environ.get('HF_KEY','').strip()
+          if not secret:
+              print('CONFIG_ERROR: HF_KEY secret is missing from repository Actions')
+              sys.exit(1)
+          if ':' not in secret or len(secret.split(':',1)[0])<3 or len(secret.split(':',1)[1])<8:
+              print('CONFIG_ERROR: HF_KEY must use KEY_ID:KEY_SECRET syntax (see provider API instructions)')
+              sys.exit(1)
+          print('HF_KEY_FORMAT_OK — segredo encontrado e formato validado, SEM chamada à API, SEM cobrança, SEM publicação')
+          PY
       - name: Render and validate, without publishing
         if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'dry-run')
         run: |
