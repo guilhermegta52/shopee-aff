@@ -4,5 +4,14 @@
     "request_id": "761d7cb1-1520-4fcc-90d8-9e04f946cc65",
     "state": "completed-manual-preview",
     "reserved_usd": "0.65"
+  },
+  "2026-10-18": {
+    "run_id": "39138823461",
+    "reserved_usd": "0.65",
+    "estimated_max_usd": "0.630",
+    "model": "kling-video/v3.0/std/image-to-video",
+    "duration": 5,
+    "state": "reserved-before-request",
+    "price_source": "https://open.higgsfield.ai/models/kling-video/v3.0/std/image-to-video/playground"
   }
 }
