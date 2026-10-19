@@ -10,7 +10,7 @@ Instale Python 3.11+, Pillow, FFmpeg e Piper:
 pip install pillow piper-tts
 python reels-worker/daily.py
 ```
-Sem credenciais da Shopee, a ferramenta consulta os produtos reais salvos em `PROMO_RADAR_API/api/status`; ignora dados de demonstração. Com `SHOPEE_APP_ID` e `SHOPEE_APP_SECRET`, consulta a API GraphQL da Shopee diretamente.
+A seleção sempre consulta `PROMO_RADAR_API/api/weekly-best` (padrão: https://shopee-afiliado-auto.vercel.app). O site busca até 5 páginas sem palavra-chave de categoria, guarda observações por 7 dias e pontua demanda (40%), avaliação (25%), desconto (20%) e comissão (15%). O histórico disponível e os motivos ficam em selection.json. Vendas são as informadas pela Shopee, não vendas comprovadas dos últimos 7 dias.
 
 ## GitHub Actions
 Copie o projeto **para um repositório GitHub apropriado** mantendo `.github/workflows/daily-reels.yml`.
@@ -27,7 +27,7 @@ Variables:
 
 Horário agendado: 12:00 UTC / 09:00 America/Sao_Paulo (sem horário de verão, sujeito a atrasos da fila GitHub).
 
-`history.json` é atualizado **somente após confirmação de publicação** e a workflow cria um commit automático com o item publicado. O agendamento usa `concurrency` para não executar duas instâncias simultâneas. Mantenha o repositório sem dados sensíveis. Os MP4 de teste aparecem na aba Actions como artefatos temporários por sete dias.
+`history.json` registra `generated` após a montagem do vídeo, antes da publicação, e `published` apenas após a confirmação do Instagram e a workflow cria um commit automático com o item publicado. O agendamento usa `concurrency` para não executar duas instâncias simultâneas. Mantenha o repositório sem dados sensíveis. Os MP4 de teste aparecem na aba Actions como artefatos temporários por sete dias.
 
 ## Limitações atuais
 - A edição é um template original de quatro cenas, com movimentos suaves de fundo/foto e texto; ainda precisa avaliação visual humana.
@@ -44,10 +44,16 @@ A rotina usa Kling 3.0 Standard, 5 segundos, sem áudio do modelo, uma tentativa
 
 Antes da tentativa, daily_guard.py consulta a tabela pública do modelo e calcula 5 segundos pela maior tarifa padrão exibida. Se a tarifa não puder ser lida ou exceder o orçamento, não gera nem publica. Isso usa preço público, não uma cotação vinculante da cobrança da conta. Custos de câmbio, GitHub Actions e armazenamento não estão incluídos no teto da IA.
 
-A reserva do dia é salva em ai-daily-ledger.json e enviada ao main ANTES de chamar a IA. Falhas não liberam a reserva e não causam novas tentativas automáticas no dia. Não apague reservas para tentar novamente sem conferir a cobrança e nova autorização. O histórico de produtos é atualizado apenas após a publicação confirmada.
+A reserva do dia é salva em ai-daily-ledger.json e enviada ao main ANTES de chamar a IA. Falhas não liberam a reserva e não causam novas tentativas automáticas no dia. Não apague reservas para tentar novamente sem conferir a cobrança e nova autorização. O histórico distingue vídeos gerados de publicações confirmadas. Ambos excluem o item das próximas seleções, e o histórico é salvo mesmo quando a publicação falha.
 
 Artifacts incluem presenter.mp4, promo-reel.mp4, result.json, presenter-request.json, publish.json quando existir e o registro diário. Retenção de 7 dias.
 
 Teste sem gastos: pull requests usam o fixture e verificam o limite e a duplicação. O modo manual ai-presenter-preview continua exigindo approve_paid_ai=true e não publica; ele é um teste pago separado, a usar somente com autorização específica.
 
 Teste real em 17/10/2026: execução 39041637640, pedido 761d7cb1-1520-4fcc-90d8-9e04f946cc65, concluído com vídeo e sem publicação. O usuário aprovou depois a publicação diária com orçamento de US$ 0,65.
+
+## Verificação da conta e teste diário
+
+`instagram-check` resolve a conta a partir do token e verifica o acesso à publicação sem gerar, hospedar ou publicar vídeos. O ID estático pode ser um ID de aplicativo ou uma conta antiga: o publicador usa o ID profissional retornado pelo token. Em 19/10/2026, a checagem confirmou @promoradar92 e um ID diferente do configurado anteriormente.
+
+`daily-publish`, com `approve_paid_ai=true`, executa a publicação diária com a mesma reserva de orçamento, concorrência e histórico da agenda. Não use ai-presenter-preview para repetir uma tentativa diária. A reserva ocorre imediatamente antes da geração IA, depois da leitura do ranking e da narração. Uma falha anterior à chamada IA não deve consumir uma tentativa paga; só libere reservas após confirmar nos logs que nenhum pedido foi submetido.
