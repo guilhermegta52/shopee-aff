@@ -23,7 +23,7 @@ async function request(endpoint,data){
  if(!resp.ok||out.error)throw Error('Instagram API: '+(out.error?.message||resp.status));
  return out;
 }
-const caption='🛍️ '+details.title+'\n💰 Preço informado: R$ '+Number(details.price).toFixed(2).replace('.',',')+'\n🔗 Confira a oferta: '+details.affiliateLink+'\n\n#Shopee #PromoRadar #Achadinhos';
+const caption='🛍️ '+details.title+'\n💰 Preço informado: R$ '+Number(details.price).toFixed(2).replace('.',',')+'\n🔗 Link do produto na bio.'+'\n\n#Shopee #PromoRadar #Achadinhos';
 const container=await request(encodeURIComponent(account.id)+'/media',{media_type:'REELS',video_url:uploaded.url,caption,share_to_feed:'true',access_token:igToken});
 if(!container.id)throw Error('Instagram não criou o contêiner');
 console.log('REEL_CONTAINER_CREATED',container.id);
