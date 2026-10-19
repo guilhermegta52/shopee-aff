@@ -15,6 +15,7 @@ on:
         options:
           - dry-run
           - live-catalog-dry-run
+          - instagram-check
           - ai-credentials-check
           - ai-presenter-preview
       approve_paid_ai:
@@ -61,6 +62,9 @@ jobs:
           python -m pip install --quiet pillow piper-tts
           python -m piper.download_voices pt_BR-faber-medium
           npm install --prefix reels-worker --omit=dev --no-audit --no-fund
+      - name: Check Instagram account and publishing access without posting
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'instagram-check'
+        run: node reels-worker/instagram-account.mjs
       - name: Check AI API credentials (no spending, no publishing)
         if: github.event_name == 'workflow_dispatch' && inputs.mode == 'ai-credentials-check'
         env:
@@ -78,7 +82,9 @@ jobs:
           print('HF_KEY_FORMAT_OK — segredo encontrado e formato validado, SEM chamada à API, SEM cobrança, SEM publicação')
           PY
       - name: Verify daily budget and duplicate-attempt protection
-        run: python -m unittest discover -s reels-worker -p 'test_daily_guard.py'
+        run: |
+          python -m unittest discover -s reels-worker -p 'test_*.py'
+          node --test reels-worker/test-instagram-account.mjs reels-worker/weekly-products.test.mjs
       - name: Render and validate, without publishing
         if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'dry-run')
         run: |
@@ -109,6 +115,7 @@ jobs:
           test -n "$INSTAGRAM_TOKEN" && test -n "$INSTAGRAM_ACCOUNT_ID"
           test -n "$BLOB_READ_WRITE_TOKEN"
           test -n "$HF_KEY"
+          node reels-worker/instagram-account.mjs
           python reels-worker/daily_guard.py
           python reels-worker/daily.py --publish
       - name: Save render for independent review
@@ -118,6 +125,8 @@ jobs:
           name: promo-radar-reel-${{ github.run_number }}
           path: |
             reels-worker/ai-daily-ledger.json
+            reels-worker/out/selection.json
+            reels-worker/history.json
             reels-worker/out/presenter.mp4
             reels-worker/out/presenter-request.json
             reels-worker/out/promo-reel.mp4
@@ -125,8 +134,8 @@ jobs:
             reels-worker/out/publish.json
           if-no-files-found: ignore
           retention-days: 7
-      - name: Record item ID only after verified Instagram publication
-        if: success() && github.event_name == 'schedule' && vars.ENABLE_DAILY_REELS == 'true'
+      - name: Save generated and published product history even when publication fails
+        if: always() && github.event_name == 'schedule' && vars.ENABLE_DAILY_REELS == 'true'
         run: |
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
