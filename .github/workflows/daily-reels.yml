@@ -8,13 +8,14 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'Manual validation mode (no Instagram post)'
+        description: 'Mode: dry tests or daily-publish (posts to Instagram)'
         required: true
         default: dry-run
         type: choice
         options:
           - dry-run
           - live-catalog-dry-run
+          - daily-publish
           - instagram-check
           - ai-credentials-check
           - ai-presenter-preview
@@ -104,7 +105,7 @@ jobs:
           test -n "$HF_KEY" || { echo "HF_KEY is missing"; exit 1; }
           python reels-worker/daily.py
       - name: Daily AI generation and Instagram publication
-        if: github.event_name == 'schedule' && vars.ENABLE_DAILY_REELS == 'true'
+        if: (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'daily-publish' && inputs.approve_paid_ai)) && vars.ENABLE_DAILY_REELS == 'true'
         env:
           ENABLE_REAL_POSTING: 'true'
           HF_KEY: ${{ secrets.HF_KEY }}
@@ -135,7 +136,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
       - name: Save generated and published product history even when publication fails
-        if: always() && github.event_name == 'schedule' && vars.ENABLE_DAILY_REELS == 'true'
+        if: always() && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'daily-publish' && inputs.approve_paid_ai)) && vars.ENABLE_DAILY_REELS == 'true'
         run: |
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
