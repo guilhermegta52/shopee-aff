@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import {savePublishedProduct} from './storefront.mjs';
 import {put} from '@vercel/blob';
 import {resolveAccount} from './instagram-account.mjs';
 const [filename,metadata]=process.argv.slice(2);
@@ -39,3 +40,5 @@ const pub=await request(encodeURIComponent(account.id)+'/media_publish',{creatio
 if(!pub.id)throw Error('Instagram não retornou ID de publicação');
 await fs.writeFile(new URL('./out/publish.json',import.meta.url),JSON.stringify({publishedId:pub.id,itemId:details.itemId,videoUrl:uploaded.url,at:new Date().toISOString()},null,2));
 console.log('REEL_PUBLISHED',pub.id);
+await savePublishedProduct(details,{publishedId:pub.id,kind:'reel'});
+console.log('STOREFRONT_UPDATED',details.itemId);
