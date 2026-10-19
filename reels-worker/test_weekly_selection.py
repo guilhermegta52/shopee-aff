@@ -17,7 +17,7 @@ class SelectionTests(unittest.TestCase):
     def __enter__(self):return self
     def __exit__(self,*args):pass
     def read(self):return json.dumps({'ok':True,'source':'weekly-observed-offers','observedDays':1,'candidates':[{'itemId':'tool','title':'Already generated'},{'itemId':'home','title':'New item'}]}).encode()
-   with patch.dict(os.environ,{},clear=True),patch('urllib.request.urlopen',return_value=Response()):
+   with patch.dict(os.environ,{'PROMO_RADAR_API':''},clear=True),patch('urllib.request.urlopen',return_value=Response()):
     self.assertEqual(namespace['product']()['itemId'],'home')
    self.assertTrue((root/'selection.json').exists())
 
