@@ -3,5 +3,13 @@
   "timezone": "America/Sao_Paulo",
   "daily_budget_usd": "0.65",
   "model": "kling-video/v3.0/std/image-to-video",
-  "duration_seconds": 5
+  "duration_seconds": 5,
+  "photo_times": [
+    "12:15",
+    "18:15",
+    "20:45"
+  ],
+  "reel_time": "19:15",
+  "reel_free_fallback": true,
+  "storefront_url": "https://shopee-afiliado-auto.vercel.app/vitrine"
 }
