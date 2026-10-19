@@ -25,7 +25,10 @@ on:
         required: true
         default: false
   schedule:
-    - cron: '0 12 * * *'
+    - cron: '15 15 * * *' # 12:15 Brasilia: photo
+    - cron: '15 21 * * *' # 18:15 Brasilia: photo
+    - cron: '15 22 * * *' # 19:15 Brasilia: Reel
+    - cron: '45 23 * * *' # 20:45 Brasilia: photo
 
 concurrency:
   group: promo-radar-reels-${{ github.ref }}
@@ -105,7 +108,7 @@ jobs:
           test -n "$HF_KEY" || { echo "HF_KEY is missing"; exit 1; }
           python reels-worker/daily.py
       - name: Daily AI generation and Instagram publication
-        if: (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'daily-publish' && inputs.approve_paid_ai)) && vars.ENABLE_DAILY_REELS == 'true'
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'daily-publish' && inputs.approve_paid_ai && vars.ENABLE_DAILY_REELS == 'true'
         env:
           ENABLE_REAL_POSTING: 'true'
           DAILY_BUDGET_GUARD: 'true'
@@ -119,12 +122,23 @@ jobs:
           test -n "$HF_KEY"
           node reels-worker/instagram-account.mjs
           python reels-worker/daily.py --publish
+      - name: Three free photo posts and one daily Reel with free fallback
+        if: github.event_name == 'schedule' && vars.ENABLE_DAILY_REELS == 'true'
+        env:
+          ENABLE_REAL_POSTING: 'true'
+          HF_KEY: ${{ secrets.HF_KEY }}
+          POST_SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          node reels-worker/instagram-account.mjs
+          python reels-worker/scheduled.py
       - name: Save render for independent review
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: promo-radar-reel-${{ github.run_number }}
           path: |
+            reels-worker/posting-ledger.json
+            reels-worker/out/photo-product.json
             reels-worker/ai-daily-ledger.json
             reels-worker/out/selection.json
             reels-worker/history.json
