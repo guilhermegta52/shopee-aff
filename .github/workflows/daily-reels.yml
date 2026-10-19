@@ -25,18 +25,29 @@ on:
         required: true
         default: false
   schedule:
-    - cron: '15 15 * * *' # 12:15 Brasilia: photo
-    - cron: '15 21 * * *' # 18:15 Brasilia: photo
-    - cron: '15 22 * * *' # 19:15 Brasilia: Reel
-    - cron: '45 23 * * *' # 20:45 Brasilia: photo
+    - cron: '*/15 * * * *' # Lightweight check of the hours saved in the dashboard
 
 concurrency:
   group: promo-radar-reels-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
+  plan:
+    if: github.event_name == 'schedule' && vars.ENABLE_DAILY_REELS == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+    outputs:
+      slot: ${{ steps.choose.outputs.slot }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check saved schedule without generating or publishing
+        id: choose
+        run: python reels-worker/due_slot.py
   render:
-    if: github.event_name != 'schedule' || vars.ENABLE_DAILY_REELS == 'true'
+    needs: plan
+    if: always() && (github.event_name != 'schedule' || (vars.ENABLE_DAILY_REELS == 'true' && needs.plan.outputs.slot != ''))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -127,7 +138,7 @@ jobs:
         env:
           ENABLE_REAL_POSTING: 'true'
           HF_KEY: ${{ secrets.HF_KEY }}
-          POST_SCHEDULE: ${{ github.event.schedule }}
+          POST_SLOT: ${{ needs.plan.outputs.slot }}
         run: |
           node reels-worker/instagram-account.mjs
           python reels-worker/scheduled.py
