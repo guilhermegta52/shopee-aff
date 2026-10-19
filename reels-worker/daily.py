@@ -47,7 +47,7 @@ def overlay(prod,img,idx,path):
  else:
   if float(prod.get('discount',0))>0:txt(g,f"DESCONTO INFORMADO: {round(float(prod['discount']))}%",1570,48)
   else:txt(g,'VEJA AS FOTOS DO PRODUTO',1570,44)
- txt(g,'CONFIRA O LINK NA LEGENDA',1810,41,center=True)
+ txt(g,'LINK DO PRODUTO NA BIO',1810,41,center=True)
  bg.save(path,quality=91)
 def run(cmd,**kwargs):
  subprocess.run(list(map(str,cmd)),check=True,**kwargs)
@@ -100,7 +100,7 @@ def synth_script(p):
  amount=f"R$ {float(p['price']):.2f}".replace('.',',')
  return ('Olha essa oferta da Shopee! '+str(p['title'])[:85]+
          '. O preço informado é '+amount+
-         '. Confira fotos, detalhes e disponibilidade no link da legenda antes de comprar.')
+         '. Confira fotos, detalhes e disponibilidade na vitrine pelo link da bio antes de comprar.')
 def render(prod,ffmpeg,image,wav,dest,presenter_clip=None):
  slides=[]
  for i in range(4):
@@ -151,11 +151,16 @@ def main():
  image=download_photo(p);wav=WORK/'narracao.wav';voice(synth_script(p),wav)
  presenter_clip=None
  if os.getenv('PRESENTER_MODE')=='ai':
-  from presenter import generate
-  if os.getenv('DAILY_BUDGET_GUARD')=='true':
-   from daily_guard import reserve
-   reserve()
-  presenter_clip=generate(p,WORK/'presenter.mp4')
+  try:
+   from presenter import generate
+   if os.getenv('DAILY_BUDGET_GUARD')=='true':
+    from daily_guard import reserve
+    reserve()
+   presenter_clip=generate(p,WORK/'presenter.mp4')
+  except Exception as exc:
+   # Never retry a paid request. Produce the original free photo/narration Reel.
+   print('FREE_REEL_FALLBACK: paid generation unavailable ('+type(exc).__name__+'); no paid retry',flush=True)
+   presenter_clip=None
  dest=WORK/'promo-reel.mp4';render(p,ffmpeg,image,wav,dest,presenter_clip)
  metadata={'itemId':str(p['itemId']),'title':p['title'],'affiliateLink':p.get('affiliateLink'),'price':p['price'],
            'video':str(dest),'date':datetime.datetime.now(datetime.timezone.utc).isoformat(),'publish':args.publish}
