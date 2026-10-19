@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Three free photos and one daily Reel, with durable publication reservations."""
 import datetime as dt, json, os, pathlib, subprocess, sys
+from due_slot import get_config,choose_due
 from zoneinfo import ZoneInfo
 ROOT=pathlib.Path(__file__).resolve().parent
 SLOTS={
@@ -20,14 +21,16 @@ def persist(files,message):
  if subprocess.run(['git','diff','--cached','--quiet'],cwd=ROOT).returncode:
   git('commit','-m',message);git('push','origin','HEAD:main')
 def main():
- slot,kind,hour=plan(os.getenv('POST_SCHEDULE',''))
  day=dt.datetime.now(ZoneInfo('America/Sao_Paulo')).date().isoformat()
  ledger_file=ROOT/'posting-ledger.json'
  ledger=json.loads(ledger_file.read_text()) if ledger_file.exists() else {}
+ config=get_config()
+ due=choose_due(config,ledger)
+ if not due:print('NO_PUBLICATION_DUE');return
+ slot,kind,hour=due
+ if os.getenv('POST_SLOT') and os.getenv('POST_SLOT')!=slot:print('SCHEDULE_CHANGED_BEFORE_EXECUTION');return
  key=day+'/'+slot
  if key in ledger:print('SLOT_ALREADY_RESERVED',key);return
- config=json.loads((ROOT/'automation.json').read_text())
- if not config.get('enabled'):raise RuntimeError('Automation disabled')
  if os.getenv('ENABLE_REAL_POSTING')!='true':
   print('SCHEDULE_DRY_RUN',day,slot,kind,hour,'America/Sao_Paulo');return
  ledger[key]={'kind':kind,'time':hour,'state':'reserved-before-publication','run_id':os.getenv('GITHUB_RUN_ID')}
