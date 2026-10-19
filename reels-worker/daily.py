@@ -162,7 +162,7 @@ def main():
    print('FREE_REEL_FALLBACK: paid generation unavailable ('+type(exc).__name__+'); no paid retry',flush=True)
    presenter_clip=None
  dest=WORK/'promo-reel.mp4';render(p,ffmpeg,image,wav,dest,presenter_clip)
- metadata={'itemId':str(p['itemId']),'title':p['title'],'affiliateLink':p.get('affiliateLink'),'price':p['price'],
+ metadata={'itemId':str(p['itemId']),'title':p['title'],'affiliateLink':p.get('affiliateLink'),'price':p['price'],'image':p['image'],
            'video':str(dest),'date':datetime.datetime.now(datetime.timezone.utc).isoformat(),'publish':args.publish}
  (WORK/'result.json').write_text(json.dumps(metadata,ensure_ascii=False,indent=2),encoding='utf8')
  if not os.getenv('TEST_PRODUCT'):
