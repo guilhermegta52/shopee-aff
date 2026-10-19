@@ -135,6 +135,13 @@ def render(prod,ffmpeg,image,wav,dest,presenter_clip=None):
 def main():
  parser=argparse.ArgumentParser();parser.add_argument('--publish',action='store_true');args=parser.parse_args()
  require(not args.publish or os.getenv('ENABLE_REAL_POSTING')=='true','Publicação desabilitada por segurança')
+ if os.getenv('DAILY_BUDGET_GUARD')=='true':
+  from zoneinfo import ZoneInfo
+  day=datetime.datetime.now(ZoneInfo('America/Sao_Paulo')).date().isoformat()
+  ledger=ROOT/'ai-daily-ledger.json'
+  if ledger.exists() and day in json.loads(ledger.read_text(encoding='utf8')):
+   print('DAILY_ALREADY_RESERVED: nenhuma nova geração ou publicação neste dia',flush=True)
+   return
  WORK.mkdir(exist_ok=True)
  ffmpeg=os.getenv('FFMPEG_BIN') or shutil.which('ffmpeg')
  if not ffmpeg:
