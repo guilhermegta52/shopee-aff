@@ -68,7 +68,7 @@ def product():
  if os.getenv('TEST_PRODUCT'):
   data=json.loads(pathlib.Path(os.getenv('TEST_PRODUCT')).read_text(encoding='utf8'))
   return data
- app=os.getenv('PROMO_RADAR_API','https://shopee-afiliado-auto.vercel.app').rstrip('/')
+ app=(os.getenv('PROMO_RADAR_API') or 'https://shopee-afiliado-auto.vercel.app').rstrip('/')
  require(app.startswith('https://'),'Fonte de ofertas deve usar HTTPS')
  req=urllib.request.Request(app+'/api/weekly-best',headers={'User-Agent':'PromoRadarDailyWorker/2.0'})
  with urllib.request.urlopen(req,timeout=120) as resp:data=json.load(resp)
@@ -145,6 +145,9 @@ def main():
  presenter_clip=None
  if os.getenv('PRESENTER_MODE')=='ai':
   from presenter import generate
+  if os.getenv('DAILY_BUDGET_GUARD')=='true':
+   from daily_guard import reserve
+   reserve()
   presenter_clip=generate(p,WORK/'presenter.mp4')
  dest=WORK/'promo-reel.mp4';render(p,ffmpeg,image,wav,dest,presenter_clip)
  metadata={'itemId':str(p['itemId']),'title':p['title'],'affiliateLink':p.get('affiliateLink'),'price':p['price'],
