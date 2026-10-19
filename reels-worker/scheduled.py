@@ -54,6 +54,16 @@ def main():
   published=ROOT/'out'/'publish.json'
   if published.exists():ledger[key]['publication']=json.loads(published.read_text())
  finally:
+  # A confirmed Instagram post stays recorded even if storefront storage failed.
+  publication=ROOT/'out'/'publish.json'
+  if publication.exists():
+   receipt=json.loads(publication.read_text())
+   ledger[key]['publication']=receipt
+   ledger[key]['state']='published'
+   history_file=ROOT/'history.json';history=json.loads(history_file.read_text())
+   history.setdefault('published',[])
+   if str(receipt['itemId']) not in history['published']:history['published'].append(str(receipt['itemId']))
+   history_file.write_text(json.dumps(history,indent=2)+'\n')
   ledger_file.write_text(json.dumps(ledger,indent=2)+'\n')
   persist(['posting-ledger.json','history.json'],'chore: save publication state '+key)
 if __name__=='__main__':main()
