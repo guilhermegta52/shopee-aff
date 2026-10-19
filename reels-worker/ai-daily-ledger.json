@@ -14,13 +14,14 @@
     "state": "reserved-before-request",
     "price_source": "https://open.higgsfield.ai/models/kling-video/v3.0/std/image-to-video/playground"
   },
-  "2026-10-19": {
+  "2026-10-19-no-charge-39245013819": {
     "run_id": "39245013819",
     "reserved_usd": "0.65",
     "estimated_max_usd": "0.630",
     "model": "kling-video/v3.0/std/image-to-video",
     "duration": 5,
-    "state": "reserved-before-request",
-    "price_source": "https://open.higgsfield.ai/models/kling-video/v3.0/std/image-to-video/playground"
+    "state": "stopped-before-ai-request",
+    "price_source": "https://open.higgsfield.ai/models/kling-video/v3.0/std/image-to-video/playground",
+    "reason": "empty PROMO_RADAR_API; logs contain no AI_REQUEST_ACCEPTED and failure before generation"
   }
 }
