@@ -108,6 +108,7 @@ jobs:
         if: (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'daily-publish' && inputs.approve_paid_ai)) && vars.ENABLE_DAILY_REELS == 'true'
         env:
           ENABLE_REAL_POSTING: 'true'
+          DAILY_BUDGET_GUARD: 'true'
           HF_KEY: ${{ secrets.HF_KEY }}
           PRESENTER_MODE: ai
           ENABLE_PAID_AI_GENERATION: 'true'
@@ -117,7 +118,6 @@ jobs:
           test -n "$BLOB_READ_WRITE_TOKEN"
           test -n "$HF_KEY"
           node reels-worker/instagram-account.mjs
-          python reels-worker/daily_guard.py
           python reels-worker/daily.py --publish
       - name: Save render for independent review
         if: always()
