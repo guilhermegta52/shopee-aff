@@ -64,49 +64,28 @@ def voice(script,wav):
  require(piper,'Piper indisponível; instale piper-tts no runner')
  name=os.getenv('PIPER_VOICE','pt_BR-faber-medium')
  run([piper,'--model',name,'--output_file',wav],input=script.encode('utf-8'))
-def shopee_offers():
- appid=os.getenv('SHOPEE_APP_ID','').strip()
- secret=os.getenv('SHOPEE_APP_SECRET','').strip()
- require(appid and secret,'Credenciais Shopee API não configuradas')
- term=os.getenv('SHOPEE_SEARCH_TERM','').strip()
- keyword=('keyword: '+json.dumps(term)+', ') if term else ''
- query='{ productOfferV2('+keyword+'sortType: 5, page: 1, limit: 50) { nodes { itemId productName priceMin priceMax priceDiscountRate commissionRate commission imageUrl productLink offerLink sales ratingStar } pageInfo { page limit hasNextPage } } }'
- body=json.dumps({'query':query},separators=(',',':')).encode()
- timestamp=str(int(time.time()))
- signature=hashlib.sha256((appid+timestamp+body.decode()+secret).encode()).hexdigest()
- request=urllib.request.Request('https://open-api.affiliate.shopee.com.br/graphql',data=body,
-  headers={'Content-Type':'application/json','Authorization':f'SHA256 Credential={appid}, Timestamp={timestamp}, Signature={signature}'})
- with urllib.request.urlopen(request,timeout=40) as r:data=json.load(r)
- if data.get('errors'):raise RuntimeError('Shopee GraphQL: '+str(data['errors'][0].get('message','Erro')))
- raw=data.get('data',{}).get('productOfferV2',{}).get('nodes',[])
- offers=[]
- for x in raw:
-  try:
-   price=float(x.get('priceMin') or x.get('priceMax') or 0)
-   if price<=0:continue
-   offers.append({'itemId':str(x['itemId']),'title':x['productName'],'price':price,
-    'discount':float(x.get('priceDiscountRate') or 0),'commissionPct':float(x.get('commissionRate') or 0)*100,
-    'sales':float(x.get('sales') or 0),'rating':float(x.get('ratingStar') or 0),
-    'image':x.get('imageUrl'),'affiliateLink':x.get('offerLink') or x.get('productLink')})
-  except (TypeError,ValueError,KeyError):continue
- return offers
 def product():
  if os.getenv('TEST_PRODUCT'):
   data=json.loads(pathlib.Path(os.getenv('TEST_PRODUCT')).read_text(encoding='utf8'))
   return data
- if os.getenv('SHOPEE_APP_ID') and os.getenv('SHOPEE_APP_SECRET'):
-  products=shopee_offers()
- else:
-  app=os.getenv('PROMO_RADAR_API','https://shopee-afiliado-auto.vercel.app').rstrip('/')
-  req=urllib.request.Request(app+'/api/status',headers={'User-Agent':'PromoRadarDailyWorker/1.0'})
-  with urllib.request.urlopen(req,timeout=25) as resp:data=json.load(resp)
-  products=[x for x in data.get('products',[]) if x.get('itemId') and x.get('image') and x.get('price') and not x.get('demo') and x.get('affiliateLink')]
- history=json.loads(HISTORY.read_text('utf8')) if HISTORY.exists() else {'published':[]}
- used={str(x) for x in history['published']}
- products=[p for p in products if str(p['itemId']) not in used]
- products.sort(key=lambda p:(float(p.get('commissionPct') or 0)*max(1,float(p.get('sales') or 1)),float(p.get('rating') or 0)),reverse=True)
- require(products,'Nenhuma oferta real, inédita e completa disponível no catálogo do Promo Radar')
- return products[0]
+ app=os.getenv('PROMO_RADAR_API','https://shopee-afiliado-auto.vercel.app').rstrip('/')
+ require(app.startswith('https://'),'Fonte de ofertas deve usar HTTPS')
+ req=urllib.request.Request(app+'/api/weekly-best',headers={'User-Agent':'PromoRadarDailyWorker/2.0'})
+ with urllib.request.urlopen(req,timeout=120) as resp:data=json.load(resp)
+ require(data.get('ok') and data.get('source')=='weekly-observed-offers','Ranking semanal indisponível; não usar seleção antiga')
+ history=json.loads(HISTORY.read_text('utf8')) if HISTORY.exists() else {}
+ used={str(x) for x in history.get('published',[])+history.get('generated',[])}
+ products=[p for p in data.get('candidates',[]) if str(p.get('itemId')) not in used]
+ require(products,'Nenhuma oferta inédita e completa no ranking dos últimos 7 dias')
+ chosen=products[0]
+ WORK.mkdir(exist_ok=True)
+ report={'source':data['source'],'windowDays':7,'observedDays':data.get('observedDays'),
+         'methodology':data.get('methodology'),'selected':chosen,
+         'excludedCount':len(used),'topCandidates':products[:10]}
+ (WORK/'selection.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf8')
+ print('WEEKLY_PRODUCT_SELECTED',chosen['itemId'],chosen['title'],chosen.get('selectionScore'),flush=True)
+ return chosen
+
 def download_photo(prod):
  src=str(prod.get('image',''))
  if os.getenv('TEST_IMAGE'):return pathlib.Path(os.getenv('TEST_IMAGE'))
@@ -171,6 +150,11 @@ def main():
  metadata={'itemId':str(p['itemId']),'title':p['title'],'affiliateLink':p.get('affiliateLink'),'price':p['price'],
            'video':str(dest),'date':datetime.datetime.now(datetime.timezone.utc).isoformat(),'publish':args.publish}
  (WORK/'result.json').write_text(json.dumps(metadata,ensure_ascii=False,indent=2),encoding='utf8')
+ if not os.getenv('TEST_PRODUCT'):
+  hist=json.loads(HISTORY.read_text('utf8')) if HISTORY.exists() else {'published':[]}
+  hist.setdefault('generated',[])
+  if str(p['itemId']) not in hist['generated']:hist['generated'].append(str(p['itemId']))
+  HISTORY.write_text(json.dumps(hist,indent=2),encoding='utf8')
  print('VIDEO_OK',dest,round(dest.stat().st_size/1024/1024,2),'MB')
  if args.publish:
   require(p.get('affiliateLink'),'Link de afiliado obrigatório')
