@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import {savePublishedProduct} from './storefront.mjs';
 import {resolveAccount} from './instagram-account.mjs';
 const [metadata]=process.argv.slice(2);
 if(process.env.ENABLE_REAL_POSTING!=='true')throw Error('Publicação não autorizada');
@@ -31,3 +32,6 @@ const published=await request(account.id+'/media_publish',{creation_id:created.i
 if(!published.id)throw Error('Publicação sem confirmação');
 await fs.writeFile(new URL('./out/publish.json',import.meta.url),JSON.stringify({publishedId:published.id,itemId:p.itemId,kind:'photo',at:new Date().toISOString()},null,2));
 console.log('PHOTO_PUBLISHED',published.id,p.itemId);
+
+await savePublishedProduct(p,{publishedId:published.id,kind:'photo'});
+console.log('STOREFRONT_UPDATED',p.itemId);
