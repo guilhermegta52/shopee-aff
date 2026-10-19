@@ -1,0 +1,14 @@
+{
+  "2026-10-19/reel": {
+    "kind": "reel",
+    "state": "published",
+    "publishedId": "18451973023130087",
+    "source": "verified-run-39245357347"
+  },
+  "2026-10-19/photo-lunch": {
+    "kind": "photo",
+    "state": "published",
+    "publishedId": "18122063962935723",
+    "source": "verified-manual-test-counted-toward-todays-three"
+  }
+}
