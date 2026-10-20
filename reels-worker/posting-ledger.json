@@ -16,5 +16,11 @@
     "state": "published",
     "source": "verified-manual-post-visible-on-Instagram",
     "instagramUrl": "https://www.instagram.com/p/DerRCLrEcCa/"
+  },
+  "2026-10-19/photo-night": {
+    "kind": "photo",
+    "time": "20:45",
+    "state": "reserved-before-publication",
+    "run_id": "39354828927"
   }
 }
