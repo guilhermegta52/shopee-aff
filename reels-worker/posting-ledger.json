@@ -20,7 +20,13 @@
   "2026-10-19/photo-night": {
     "kind": "photo",
     "time": "20:45",
-    "state": "reserved-before-publication",
-    "run_id": "39354828927"
+    "state": "published",
+    "run_id": "39354828927",
+    "publication": {
+      "publishedId": "17908364073664262",
+      "itemId": "26673082121",
+      "kind": "photo",
+      "at": "2026-10-20T01:42:23.354Z"
+    }
   }
 }
