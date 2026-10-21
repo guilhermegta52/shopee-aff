@@ -99,7 +99,7 @@ jobs:
       - name: Verify daily budget and duplicate-attempt protection
         run: |
           python -m unittest discover -s reels-worker -p 'test_*.py'
-          node --test reels-worker/test-instagram-account.mjs reels-worker/weekly-products.test.mjs
+          node --test reels-worker/test-instagram-account.mjs reels-worker/weekly-products.test.mjs reels-worker/photo-selection.test.mjs
       - name: Render and validate, without publishing
         if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'dry-run')
         run: |
