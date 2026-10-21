@@ -44,7 +44,13 @@
   "2026-10-21/photo-lunch": {
     "kind": "photo",
     "time": "12:15",
-    "state": "reserved-before-publication",
-    "run_id": "39632126940"
+    "state": "published",
+    "run_id": "39632126940",
+    "publication": {
+      "publishedId": "17913971613497311",
+      "itemId": "22333327747",
+      "kind": "photo",
+      "at": "2026-10-21T16:10:24.215Z"
+    }
   }
 }
