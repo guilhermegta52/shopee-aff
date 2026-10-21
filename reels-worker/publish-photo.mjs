@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import {savePublishedProduct} from './storefront.mjs';
 import {resolveAccount} from './instagram-account.mjs';
+import {selectProductPhotos} from './photo-selection.mjs';
 const [metadata]=process.argv.slice(2);
 if(process.env.ENABLE_REAL_POSTING!=='true')throw Error('Publicação não autorizada');
 const p=JSON.parse(await fs.readFile(metadata,'utf8'));
@@ -11,11 +12,10 @@ try{
  const url=app+'/api/weekly-product-media?'+new URLSearchParams({itemId:String(p.itemId)});
  const response=await fetch(url,{signal:AbortSignal.timeout(45000)});
  const media=await response.json();
- const gallery=[...new Set((Array.isArray(media.images)?media.images:[]).filter(x=>typeof x==='string'&&/^https:\/\//i.test(x)))].slice(0,5);
- if(response.ok&&media.ok&&media.hasFivePhotos&&gallery.length===5)images=gallery;
- else console.log('PRODUCT_GALLERY_NOT_AVAILABLE',p.itemId,Number(media.photoCount)||gallery.length,'using one verified catalog photo');
+ images=selectProductPhotos(response.ok?media:null,'');
+ if(images.length!==5)console.log('PRODUCT_GALLERY_NOT_AVAILABLE',p.itemId,Number(media.photoCount)||images.length,'using one verified catalog photo');
 }catch(error){console.log('PRODUCT_GALLERY_LOOKUP_FAILED',p.itemId,String(error.message||error).slice(0,160),'using one catalog photo');}
-if(images.length!==5)images=[p.image];
+if(images.length!==5)images=selectProductPhotos(null,p.image);
 const account=await resolveAccount();
 const imageUrls=images.map(src=>app+'/api/instagram/media?'+new URLSearchParams({src,v:'product-photo-2'}));
 for(const image of imageUrls){
