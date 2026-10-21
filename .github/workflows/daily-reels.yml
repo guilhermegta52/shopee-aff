@@ -138,6 +138,7 @@ jobs:
         env:
           ENABLE_REAL_POSTING: 'true'
           HF_KEY: ${{ secrets.HF_KEY }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
           POST_SLOT: ${{ needs.plan.outputs.slot }}
         run: |
           node reels-worker/instagram-account.mjs
