@@ -41,5 +41,14 @@
     "duration": 5,
     "state": "reserved-before-request",
     "price_source": "https://open.higgsfield.ai/models/kling-video/v3.0/std/image-to-video/playground"
+  },
+  "2026-10-21": {
+    "run_id": "39693334000",
+    "reserved_usd": "0.65",
+    "estimated_max_usd": "0.630",
+    "model": "kling-video/v3.0/std/image-to-video",
+    "duration": 5,
+    "state": "reserved-before-request",
+    "price_source": "https://open.higgsfield.ai/models/kling-video/v3.0/std/image-to-video/playground"
   }
 }
