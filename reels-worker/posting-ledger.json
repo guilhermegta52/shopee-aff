@@ -52,5 +52,11 @@
       "kind": "photo",
       "at": "2026-10-21T16:10:24.215Z"
     }
+  },
+  "2026-10-21/reel": {
+    "kind": "reel",
+    "time": "19:15",
+    "state": "reserved-before-publication",
+    "run_id": "39693334000"
   }
 }
