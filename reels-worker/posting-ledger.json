@@ -40,5 +40,11 @@
       "videoUrl": "https://j5rfrcfszx44xvyu.public.blob.vercel-storage.com/promo-radar/reels/2026-10-20-22092998564.mp4",
       "at": "2026-10-20T23:28:00.175Z"
     }
+  },
+  "2026-10-21/photo-lunch": {
+    "kind": "photo",
+    "time": "12:15",
+    "state": "reserved-before-publication",
+    "run_id": "39632126940"
   }
 }
