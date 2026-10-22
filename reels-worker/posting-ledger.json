@@ -85,7 +85,18 @@
   "2026-10-22/photo-evening": {
     "kind": "photo",
     "time": "18:15",
-    "state": "reserved-before-publication",
-    "run_id": "39873251275"
+    "state": "published",
+    "run_id": "39873251275",
+    "publication": {
+      "publishedId": "18000963825010445",
+      "itemId": "23598054744",
+      "kind": "photo",
+      "photos": 1,
+      "at": "2026-10-22T23:40:35.870Z",
+      "tiktok": {
+        "status": "not_configured",
+        "error": "CRON_SECRET ausente no GitHub Actions"
+      }
+    }
   }
 }
