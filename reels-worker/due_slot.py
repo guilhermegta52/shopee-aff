@@ -17,7 +17,9 @@ def choose_due(config,ledger,now=None):
  for slot,kind,hour in sorted(slots,key=lambda x:x[2]):
   at=dt.datetime.combine(now.date(),dt.time.fromisoformat(hour),tzinfo=ZoneInfo('America/Sao_Paulo'))
   age=(now-at).total_seconds()
-  if 0<=age<=7200 and day+'/'+slot not in ledger:return slot,kind,hour
+  # Recover a missed check later the same day; the former 2-hour limit
+  # expired evening slots during GitHub Actions delays.
+  if 0<=age<=21600 and day+'/'+slot not in ledger:return slot,kind,hour
  return None
 def main():
  config=get_config();file=ROOT/'posting-ledger.json';ledger=json.loads(file.read_text()) if file.exists() else {}
