@@ -12,10 +12,11 @@ try{
  const url=app+'/api/weekly-product-media?'+new URLSearchParams({itemId:String(p.itemId)});
  const response=await fetch(url,{signal:AbortSignal.timeout(45000)});
  const media=await response.json();
- images=selectProductPhotos(response.ok?media:null,'');
- if(images.length!==5)console.log('PRODUCT_GALLERY_NOT_AVAILABLE',p.itemId,Number(media.photoCount)||images.length,'using one verified catalog photo');
+ images=selectProductPhotos(response.ok?media:null,'').slice(0,1);
+ if(!images.length)console.log('PRODUCT_GALLERY_NOT_AVAILABLE',p.itemId,Number(media.photoCount)||0,'using one verified catalog photo');
 }catch(error){console.log('PRODUCT_GALLERY_LOOKUP_FAILED',p.itemId,String(error.message||error).slice(0,160),'using one catalog photo');}
-if(images.length!==5)images=selectProductPhotos(null,p.image);
+if(!images.length)images=selectProductPhotos(null,p.image).slice(0,1);
+if(!images.length)throw Error('Nenhuma foto válida disponível para publicação');
 const account=await resolveAccount();
 const imageUrls=images.map(src=>app+'/api/instagram/media?'+new URLSearchParams({src,v:'product-photo-2'}));
 for(const image of imageUrls){
@@ -39,43 +40,29 @@ async function waitReady(id,label){
  }
  throw Error(label+' não ficou pronto; publicação não repetida automaticamente');
 }
-let created;
-if(images.length===5){
- const children=[];
- for(const image of imageUrls){
-  const child=await request(account.id+'/media',{image_url:image,is_carousel_item:'true'});
-  if(!child.id)throw Error('Instagram não retornou contêiner de foto');
-  await waitReady(child.id,'uma foto do carrossel');children.push(child.id);
- }
- created=await request(account.id+'/media',{media_type:'CAROUSEL',children:children.join(','),caption});
- if(!created.id)throw Error('Instagram não criou o carrossel');
-}else{
- created=await request(account.id+'/media',{image_url:imageUrls[0],caption});
- if(!created.id)throw Error('Instagram não retornou contêiner de foto');
-}
-await waitReady(created.id,images.length===5?'o carrossel':'a foto');
+const created=await request(account.id+'/media',{image_url:imageUrls[0],caption});
+if(!created.id)throw Error('Instagram não retornou contêiner de foto');
+await waitReady(created.id,'a foto');
 const published=await request(account.id+'/media_publish',{creation_id:created.id});
 if(!published.id)throw Error('Publicação sem confirmação');
-const kind=images.length===5?'carousel':'photo';
-const receipt={publishedId:published.id,itemId:p.itemId,kind,photos:images.length,at:new Date().toISOString()};
+const kind='photo';
+const receipt={publishedId:published.id,itemId:p.itemId,kind,photos:1,at:new Date().toISOString()};
 const receiptPath=new URL('./out/publish.json',import.meta.url);
 await fs.mkdir(new URL('./out/',import.meta.url),{recursive:true});
 await fs.writeFile(receiptPath,JSON.stringify(receipt,null,2));
-console.log(images.length===5?'INSTAGRAM_CAROUSEL_PUBLISHED':'PHOTO_PUBLISHED',published.id,p.itemId,images.length);
-if(images.length===5){
- if(process.env.CRON_SECRET){
-  try{
-   const response=await fetch(app+'/api/tiktok/automation/photo',{method:'POST',headers:{Authorization:'Bearer '+process.env.CRON_SECRET,'Content-Type':'application/json'},body:JSON.stringify({itemId:String(p.itemId)}),signal:AbortSignal.timeout(40000)});
-   const result=await response.json();
-   if(!response.ok||!result.ok)throw Error(result.error||'TikTok HTTP '+response.status);
-   receipt.tiktok={status:result.status,publishId:result.publishId,photos:result.photoCount,draft:true};
-   console.log('TIKTOK_PHOTO_DRAFT_QUEUED',result.publishId,result.photoCount);
-  }catch(error){receipt.tiktok={status:'error',error:String(error.message||error).slice(0,250)};console.error('TIKTOK_DRAFT_FAILED',receipt.tiktok.error);}
- }else{
-  receipt.tiktok={status:'not_configured',error:'CRON_SECRET ausente no GitHub Actions'};
-  console.error('TIKTOK_DRAFT_SKIPPED: CRON_SECRET não configurado');
- }
-}else receipt.tiktok={status:'skipped_insufficient_gallery',photos:images.length};
+console.log('PHOTO_PUBLISHED',published.id,p.itemId,1);
+if(process.env.CRON_SECRET){
+ try{
+  const response=await fetch(app+'/api/tiktok/automation/photo',{method:'POST',headers:{Authorization:'Bearer '+process.env.CRON_SECRET,'Content-Type':'application/json'},body:JSON.stringify({itemId:String(p.itemId)}),signal:AbortSignal.timeout(40000)});
+  const result=await response.json();
+  if(!response.ok||!result.ok)throw Error(result.error||'TikTok HTTP '+response.status);
+  receipt.tiktok={status:result.status,publishId:result.publishId,photos:result.photoCount,draft:true};
+  console.log('TIKTOK_PHOTO_DRAFT_QUEUED',result.publishId,result.photoCount);
+ }catch(error){receipt.tiktok={status:'error',error:String(error.message||error).slice(0,250)};console.error('TIKTOK_DRAFT_FAILED',receipt.tiktok.error);}
+}else{
+ receipt.tiktok={status:'not_configured',error:'CRON_SECRET ausente no GitHub Actions'};
+ console.error('TIKTOK_DRAFT_SKIPPED: CRON_SECRET não configurado');
+}
 await fs.writeFile(receiptPath,JSON.stringify(receipt,null,2));
 await savePublishedProduct(p,{publishedId:published.id,kind});
 console.log('STOREFRONT_UPDATED',p.itemId);
