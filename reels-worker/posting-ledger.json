@@ -68,7 +68,18 @@
   "2026-10-22/photo-lunch": {
     "kind": "photo",
     "time": "12:15",
-    "state": "reserved-before-publication",
-    "run_id": "39851504049"
+    "state": "published",
+    "run_id": "39851504049",
+    "publication": {
+      "publishedId": "18503218009102445",
+      "itemId": "23897970429",
+      "kind": "photo",
+      "photos": 1,
+      "at": "2026-10-22T20:45:59.030Z",
+      "tiktok": {
+        "status": "not_configured",
+        "error": "CRON_SECRET ausente no GitHub Actions"
+      }
+    }
   }
 }
