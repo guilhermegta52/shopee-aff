@@ -127,5 +127,11 @@
         "error": "CRON_SECRET ausente no GitHub Actions"
       }
     }
+  },
+  "2026-10-23/photo-evening": {
+    "kind": "photo",
+    "time": "18:15",
+    "state": "reserved-before-publication",
+    "run_id": "40039838025"
   }
 }
