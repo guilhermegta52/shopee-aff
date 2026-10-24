@@ -144,5 +144,11 @@
         "error": "CRON_SECRET ausente no GitHub Actions"
       }
     }
+  },
+  "2026-10-23/reel": {
+    "kind": "reel",
+    "time": "19:15",
+    "state": "reserved-before-publication",
+    "run_id": "40051904456"
   }
 }
