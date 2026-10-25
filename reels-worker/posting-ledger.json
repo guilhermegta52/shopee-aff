@@ -185,5 +185,11 @@
     "time": "19:15",
     "state": "reserved-before-publication",
     "run_id": "40150110791"
+  },
+  "2026-10-25/photo-lunch": {
+    "kind": "photo",
+    "time": "12:15",
+    "state": "reserved-before-publication",
+    "run_id": "40220837970"
   }
 }
