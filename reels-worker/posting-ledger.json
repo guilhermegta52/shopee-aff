@@ -191,5 +191,11 @@
     "time": "12:15",
     "state": "reserved-before-publication",
     "run_id": "40220837970"
+  },
+  "2026-10-25/photo-evening": {
+    "kind": "photo",
+    "time": "18:15",
+    "state": "reserved-before-publication",
+    "run_id": "40243460938"
   }
 }
