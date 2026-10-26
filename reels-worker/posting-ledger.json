@@ -197,5 +197,11 @@
     "time": "18:15",
     "state": "reserved-before-publication",
     "run_id": "40243460938"
+  },
+  "2026-10-25/reel": {
+    "kind": "reel",
+    "time": "19:15",
+    "state": "reserved-before-publication",
+    "run_id": "40253424959"
   }
 }
