@@ -201,7 +201,13 @@
   "2026-10-25/reel": {
     "kind": "reel",
     "time": "19:15",
-    "state": "reserved-before-publication",
-    "run_id": "40253424959"
+    "state": "published",
+    "run_id": "40253424959",
+    "publication": {
+      "publishedId": "18201489364379202",
+      "itemId": "22794531982",
+      "videoUrl": "https://j5rfrcfszx44xvyu.public.blob.vercel-storage.com/promo-radar/reels/2026-10-26-22794531982.mp4",
+      "at": "2026-10-26T01:32:22.120Z"
+    }
   }
 }
