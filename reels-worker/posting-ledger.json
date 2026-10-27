@@ -227,5 +227,11 @@
     "time": "19:15",
     "state": "reserved-before-publication",
     "run_id": "40436696012"
+  },
+  "2026-10-27/photo-lunch": {
+    "kind": "photo",
+    "time": "12:15",
+    "state": "reserved-before-publication",
+    "run_id": "40569532789"
   }
 }
