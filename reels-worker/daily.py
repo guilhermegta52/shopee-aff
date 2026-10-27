@@ -76,14 +76,35 @@ def product():
  history=json.loads(HISTORY.read_text('utf8')) if HISTORY.exists() else {}
  used={str(x) for x in history.get('published',[])+history.get('generated',[])}
  products=[p for p in data.get('candidates',[]) if str(p.get('itemId')) not in used]
- require(products,'Nenhuma oferta inédita e completa no ranking dos últimos 7 dias')
- chosen=products[0]
+ source=data['source']
+ methodology=data.get('methodology')
+ if products:
+  chosen=products[0]
+ else:
+  # The rolling weekly snapshot can be empty or exhausted. Query the live
+  # Shopee catalog before giving up; keep quality filters and never reuse IDs.
+  script="""import {fetchBroadOffers,eligible,offerScore} from './weekly-products.mjs';
+const excluded=new Set(JSON.parse(process.env.PROMO_RADAR_EXCLUDED_IDS||'[]').map(String));
+const offers=await fetchBroadOffers(process.env.SHOPEE_APP_ID,process.env.SHOPEE_APP_SECRET);
+const candidates=offers.filter(p=>eligible(p)&&!excluded.has(String(p.itemId)))
+ .map(p=>({...p,selectionScore:Math.round(offerScore(p)*100)/100}))
+ .sort((a,b)=>b.selectionScore-a.selectionScore||String(a.itemId).localeCompare(String(b.itemId)));
+console.log(JSON.stringify(candidates[0]||null));"""
+  env=os.environ.copy()
+  env['PROMO_RADAR_EXCLUDED_IDS']=json.dumps(sorted(used))
+  result=subprocess.run(['node','--input-type=module','-e',script],cwd=ROOT,env=env,
+                        capture_output=True,text=True,timeout=120,check=True)
+  chosen=json.loads(result.stdout.strip().splitlines()[-1])
+  require(chosen and str(chosen.get('itemId')) not in used,
+          'Ranking semanal vazio e Shopee sem oferta nova que passe nos filtros')
+  source='shopee-live-catalog-fallback'
+  methodology='Busca direta no catálogo atual da Shopee; mesmos filtros de qualidade e bloqueio de itens já publicados.'
  WORK.mkdir(exist_ok=True)
- report={'source':data['source'],'windowDays':7,'observedDays':data.get('observedDays'),
-         'methodology':data.get('methodology'),'selected':chosen,
+ report={'source':source,'windowDays':7,'observedDays':data.get('observedDays'),
+         'methodology':methodology,'selected':chosen,
          'excludedCount':len(used),'topCandidates':products[:10]}
  (WORK/'selection.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf8')
- print('WEEKLY_PRODUCT_SELECTED',chosen['itemId'],chosen['title'],chosen.get('selectionScore'),flush=True)
+ print('WEEKLY_PRODUCT_SELECTED',chosen['itemId'],chosen['title'],chosen.get('selectionScore'),source,flush=True)
  return chosen
 
 def download_photo(prod):
