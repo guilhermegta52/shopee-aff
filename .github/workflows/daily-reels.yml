@@ -25,7 +25,9 @@ on:
         required: true
         default: false
   schedule:
-    - cron: '7,22,37,52 * * * *' # Lightweight check of the hours saved in the dashboard
+    - cron: '7,22,37,52 * * * *' # Recover dashboard schedule changes during the day
+    - cron: '15 15,21,22 * * *' # Exact default slots: 12:15, 18:15 and 19:15 America/Sao_Paulo
+    - cron: '45 23 * * *' # Exact default slot: 20:45 America/Sao_Paulo
 
 concurrency:
   group: promo-radar-reels-${{ github.ref }}
