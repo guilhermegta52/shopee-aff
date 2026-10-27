@@ -221,5 +221,11 @@
     "time": "18:15",
     "state": "reserved-before-publication",
     "run_id": "40418694615"
+  },
+  "2026-10-26/reel": {
+    "kind": "reel",
+    "time": "19:15",
+    "state": "reserved-before-publication",
+    "run_id": "40436696012"
   }
 }
