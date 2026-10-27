@@ -31,7 +31,7 @@ class SelectionTests(unittest.TestCase):
    namespace=self.make_namespace(root,history)
    exec(compile(ast.Module(body=[PRODUCT],type_ignores=[]),'selection','exec'),namespace)
    live={'itemId':'fresh','title':'Current Shopee offer','price':29.9,'rating':4.8,'sales':120,'commissionPct':10,'image':'https://img.susercontent.com/item.jpg','affiliateLink':'https://shopee.com.br/item'}
-   completed=SimpleNamespace(stdout=json.dumps(live)+'\\n',stderr='',returncode=0)
+   completed=SimpleNamespace(stdout=json.dumps(live)+'\n',stderr='',returncode=0)
    with patch.dict(os.environ,{'PROMO_RADAR_API':''},clear=True),patch('urllib.request.urlopen',return_value=self.response([{'itemId':'old','title':'Already published'}])),patch('subprocess.run',return_value=completed) as run:
     selected=namespace['product']()
    self.assertEqual(selected['itemId'],'fresh')
